@@ -1,62 +1,38 @@
-# Base Bun image
-FROM oven/bun:1 AS base
+# 1) Build stage
+FROM node:20-alpine AS builder
 WORKDIR /app
 
-# -----------------------------
-# deps: install node_modules
-# -----------------------------
-FROM base AS deps
-COPY package.json bun.lock* ./
-RUN bun install --no-save --frozen-lockfile
+# Install deps
+COPY package.json package-lock.json* pnpm-lock.yaml* yarn.lock* ./
+# Use exactly one of the following according to your project
+RUN npm ci
 
-# -----------------------------
-# builder: compile Next.js app
-# -----------------------------
-FROM base AS builder
-WORKDIR /app
-
-# Bring node_modules
-COPY --from=deps /app/node_modules ./node_modules
-# Bring source
+# Copy source
 COPY . .
 
-# ---- Build-time public envs (client bundle) ----
-ARG NEXT_PUBLIC_SITE_URL
-ARG NEXT_PUBLIC_TURNSTILE_SITE_KEY
-ARG NEXT_PUBLIC_PROMPTPAY_ACCOUNT_NUMBER
-ARG NEXT_PUBLIC_PROMPTPAY_ACCOUNT_NAME
+# ---- Build-time env (only if you need to inject NEXT_PUBLIC_* at build) ----
+# ARGs are available at build-time; they won’t persist to runtime.
+# Example:
+# ARG NEXT_PUBLIC_API_URL
+# ENV NEXT_PUBLIC_API_URL=$NEXT_PUBLIC_API_URL
 
-ENV NEXT_PUBLIC_SITE_URL=$NEXT_PUBLIC_SITE_URL \
-    NEXT_PUBLIC_TURNSTILE_SITE_KEY=$NEXT_PUBLIC_TURNSTILE_SITE_KEY \
-    NEXT_PUBLIC_PROMPTPAY_ACCOUNT_NUMBER=$NEXT_PUBLIC_PROMPTPAY_ACCOUNT_NUMBER \
-    NEXT_PUBLIC_PROMPTPAY_ACCOUNT_NAME=$NEXT_PUBLIC_PROMPTPAY_ACCOUNT_NAME
+RUN npm run build
 
-# Build (Next.js "standalone" output)
-RUN bun run build
-
-# -----------------------------
-# runner: minimal runtime image
-# -----------------------------
-FROM base AS runner
+# 2) Runtime stage
+FROM node:20-alpine AS runner
 WORKDIR /app
+ENV NODE_ENV=production
 
-# Runtime defaults (override via `docker run --env-file` as needed)
-ENV NODE_ENV=production \
-    HOSTNAME=0.0.0.0 \
-    PORT=3000
+# Install prod deps only
+COPY package.json package-lock.json* pnpm-lock.yaml* yarn.lock* ./
+RUN npm ci --omit=dev
 
-# Non-root user
-RUN addgroup --system --gid 1001 nodejs && \
-    adduser --system --uid 1001 nextjs
-
-# Public assets
-COPY --from=builder /app/public ./public
-
-COPY --from=builder --chown=nextjs:nodejs /app/.next/standalone ./
-COPY --from=builder --chown=nextjs:nodejs /app/.next/static ./.next/static
-
-USER nextjs
+# Copy built app
+COPY --from=builder /app/.next .next
+COPY --from=builder /app/public public
+COPY --from=builder /app/next.config.js ./next.config.js
+# If you use standalone output, copy /.next/standalone and /.next/static instead.
 
 EXPOSE 3000
-
-CMD ["bun", "server.js"]
+# Next.js default start
+CMD ["npm", "start"]
