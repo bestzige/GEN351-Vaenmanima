@@ -1,35 +1,56 @@
-# 1) Build stage
-FROM node:20-bookworm-slim AS builder
+FROM oven/bun AS base
+
+# Install dependencies only when needed
+FROM base AS deps
+
 WORKDIR /app
 
-# Better caching for node_modules
-RUN corepack enable || true
+# Install dependencies
+COPY package.json bun.lockb ./
+RUN bun install --frozen-lockfile
 
-# Copy only files needed for deps
-COPY package.json package-lock.json ./
-# If you actually use pnpm or yarn, swap to that (see Option C below)
-RUN npm ci
-
-# Copy source
+# Rebuild the source code only when needed
+FROM base AS builder
+WORKDIR /app
+COPY --from=deps /app/node_modules ./node_modules
 COPY . .
 
-# Build-time public env (optional)
-# ARG NEXT_PUBLIC_API_URL
-# ENV NEXT_PUBLIC_API_URL=$NEXT_PUBLIC_API_URL
+# Next.js collects completely anonymous telemetry data about general usage.
+# Learn more here: https://nextjs.org/telemetry
+# Disable telemetry during the build
+ENV NEXT_TELEMETRY_DISABLED 1
 
-RUN npm run build
+RUN bun run build
 
-# 2) Runtime with Next.js standalone output (no re-install!)
-FROM node:20-bookworm-slim AS runner
+# Production image, copy all the files and run next
+FROM base AS runner
 WORKDIR /app
-ENV NODE_ENV=production \
-    PORT=3000
 
-# If you use Next.js "output: 'standalone'", copy the minimal runtime
-# Otherwise copy .next + node_modules (see comments below)
-COPY --from=builder /app/.next/standalone ./
-COPY --from=builder /app/.next/static ./.next/static
+ENV NODE_ENV production
+
+# Disable telemetry
+ENV NEXT_TELEMETRY_DISABLED 1
+
+RUN adduser --system --uid 1001 nextjs
+
 COPY --from=builder /app/public ./public
 
+# Set the correct permission for prerender cache
+RUN mkdir .next
+RUN chown nextjs:bun .next
+
+# Automatically leverage output traces to reduce image size
+# https://nextjs.org/docs/advanced-features/output-file-tracing
+COPY --from=builder --chown=nextjs:bun /app/.next/standalone ./
+COPY --from=builder --chown=nextjs:bun /app/.next/static ./.next/static
+
+USER nextjs
+
 EXPOSE 3000
-CMD ["node", "server.js"]
+
+ENV PORT 3000
+
+# Set hostname to localhost
+ENV HOSTNAME "0.0.0.0"
+
+CMD ["bun", "server.js"]
