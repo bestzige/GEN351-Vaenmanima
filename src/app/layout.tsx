@@ -12,9 +12,7 @@ const kanit = Kanit({
 });
 
 export const metadata: Metadata = {
-  metadataBase: new URL(
-    process.env.NEXT_PUBLIC_SITE_URL || 'http://localhost:3000'
-  ),
+  metadataBase: new URL('https://meekai.craftify.work'),
   title: {
     default: 'พรีออเดอร์ หมี่ไก่ฉีก (By แว่นมานี่มา)',
     template: '%s | พรีออเดอร์ หมี่ไก่ฉีก (By แว่นมานี่มา)',
