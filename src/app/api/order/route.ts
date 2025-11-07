@@ -201,7 +201,9 @@ export const POST = async (req: NextRequest) => {
     const orderId = nanoid(10);
 
     await appendOrder({
-      timestampISO: new Date().toISOString(),
+      timestampISO: new Date().toLocaleString('th-TH', {
+        timeZone: 'Asia/Bangkok',
+      }),
       orderId,
       customerName: parsed.data.name,
       phone: parsed.data.phone,
