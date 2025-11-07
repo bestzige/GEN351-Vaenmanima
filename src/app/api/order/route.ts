@@ -52,6 +52,9 @@ const sendDiscord = async (payload: {
   if (!url) return;
 
   const line = buildOneLineSummary(payload.qty, payload.unit);
+  const timestamp = new Date().toLocaleString('th-TH', {
+    timeZone: 'Asia/Bangkok',
+  });
 
   const content = [
     `🧾 **New Order** \`${payload.orderId}\``,
@@ -60,6 +63,7 @@ const sendDiscord = async (payload: {
     payload.note ? `📝 Note: ${payload.note}` : '',
     `💰 รวม: **${payload.total.toLocaleString()} บาท**`,
     payload.slipUrl ? `🖼️ Slip: ${payload.slipUrl}` : '',
+    `🕒 เวลาออเดอร์: ${timestamp}`,
   ]
     .filter(Boolean)
     .join('\n');
