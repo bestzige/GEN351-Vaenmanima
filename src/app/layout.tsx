@@ -1,4 +1,3 @@
-import { Card, CardContent } from '@/components/ui/card';
 import { cn, PREORDER_CLOSED } from '@/lib/utils';
 import type { Metadata, Viewport } from 'next';
 import { Kanit } from 'next/font/google';
@@ -99,25 +98,10 @@ const RootLayout = ({
         <div className="relative mx-auto max-w-2xl p-4 flex flex-col min-h-dvh">
           <header>
             <h1 className="mb-4 text-center text-lg font-bold text-red-700 drop-shadow-sm md:text-2xl">
-              พรีออเดอร์ &quot;หมี่ไก่ฉีก&quot; (By แว่นมานี่มา)
+              {PREORDER_CLOSED ? '' : 'พรีออเดอร์'}
+              &quot;หมี่ไก่ฉีก&quot; (By แว่นมานี่มา)
             </h1>
           </header>
-
-          {PREORDER_CLOSED && (
-            <Card
-              role="alert"
-              className="border-destructive/30 bg-destructive/5 my-2"
-            >
-              <CardContent className="py-3">
-                <p className="text-sm">
-                  <span className="font-semibold text-destructive">
-                    ปิดพรีออเดอร์แล้ว
-                  </span>{' '}
-                  ขอบคุณทุกออเดอร์นะคะ/ครับ 🙏 รอบถัดไปจะแจ้งให้ทราบอีกครั้ง
-                </p>
-              </CardContent>
-            </Card>
-          )}
 
           <main className="flex-1">{children}</main>
 
