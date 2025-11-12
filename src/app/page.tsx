@@ -16,6 +16,7 @@ import {
   CardTitle,
 } from '@/components/ui/card';
 import { Separator } from '@/components/ui/separator';
+import { cn, PREORDER_CLOSED } from '@/lib/utils';
 import Image from 'next/image';
 
 const FormSchema = z.object({
@@ -24,9 +25,10 @@ const FormSchema = z.object({
 });
 type TForm = z.infer<typeof FormSchema>;
 
-const Page = () => {
+const OrderPage = () => {
   const router = useRouter();
   const basePrice = 59;
+
   const {
     handleSubmit,
     setValue,
@@ -41,16 +43,23 @@ const Page = () => {
   const note = watch('note') ?? '';
   const total = useMemo(() => basePrice * qty, [qty]);
 
-  const inc = () =>
+  const isDisabled = PREORDER_CLOSED;
+
+  const inc = () => {
+    if (isDisabled) return;
     setValue('qty', Math.min((Number(qty) || 1) + 1, 99), {
       shouldValidate: true,
     });
-  const dec = () =>
+  };
+  const dec = () => {
+    if (isDisabled) return;
     setValue('qty', Math.max((Number(qty) || 1) - 1, 1), {
       shouldValidate: true,
     });
+  };
 
   const goCheckout = () => {
+    if (isDisabled) return;
     const payloadItems = Array.from({ length: qty }, () => ({
       name: 'หมี่ไก่ฉีก',
       basePrice,
@@ -63,10 +72,13 @@ const Page = () => {
 
   return (
     <form
-      className="space-y-2"
+      className={cn(
+        'space-y-2',
+        isDisabled && 'grayscale pointer-events-none select-none'
+      )}
       onSubmit={handleSubmit(goCheckout)}
     >
-      <Card>
+      <Card aria-disabled={isDisabled}>
         <CardHeader>
           <CardTitle className="text-lg">STEP 1: เลือกรายการ</CardTitle>
         </CardHeader>
@@ -77,6 +89,7 @@ const Page = () => {
             width={250}
             height={100}
             className="object-cover mx-auto mb-4 rounded-md"
+            priority
           />
         </CardContent>
         <CardFooter className="justify-center">
@@ -90,7 +103,10 @@ const Page = () => {
         initial={{ opacity: 0, y: 8 }}
         animate={{ opacity: 1, y: 0 }}
       >
-        <Card className="mb-2">
+        <Card
+          className="mb-2"
+          aria-disabled={isDisabled}
+        >
           <CardHeader>
             <div className="flex items-center justify-between">
               <CardTitle className="text-base font-semibold flex items-center">
@@ -104,6 +120,7 @@ const Page = () => {
               </CardTitle>
             </div>
           </CardHeader>
+
           <CardContent className="space-y-3">
             <div className="text-sm text-muted-foreground">
               หมี่, ไก่ฉีก, หมูกระจก, ผัก, กระเทียมเจียว
@@ -118,6 +135,7 @@ const Page = () => {
                   size="icon"
                   onClick={dec}
                   aria-label="ลดจำนวน"
+                  disabled={isDisabled}
                 >
                   –
                 </Button>
@@ -128,6 +146,7 @@ const Page = () => {
                   size="icon"
                   onClick={inc}
                   aria-label="เพิ่มจำนวน"
+                  disabled={isDisabled}
                 >
                   +
                 </Button>
@@ -154,6 +173,7 @@ const Page = () => {
                 maxLength={200}
                 onChange={(e) => setValue('note', e.target.value)}
                 placeholder="เช่น ไม่ใส่ผัก ฯลฯ"
+                disabled={isDisabled}
               />
             </div>
 
@@ -166,7 +186,7 @@ const Page = () => {
         </Card>
       </motion.div>
 
-      <Card>
+      <Card aria-disabled={isDisabled}>
         <CardHeader>
           <CardTitle className="text-lg">สรุป</CardTitle>
         </CardHeader>
@@ -177,23 +197,37 @@ const Page = () => {
               {total.toLocaleString()} บาท
             </span>
           </div>
+
           {note && (
             <div className="text-xs text-muted-foreground">
               หมายเหตุ:{' '}
               <span className="font-medium text-foreground">{note}</span>
             </div>
           )}
+
           <Separator />
-          <div className="text-xs text-muted-foreground">
-            กด "ชำระเงิน" เพื่อไปกรอกชื่อ/เบอร์ และอัปโหลดสลิป
-          </div>
+
+          {isDisabled ? (
+            <div className="text-xs text-destructive font-medium">
+              ปิดรับพรีออเดอร์ชั่วคราว
+            </div>
+          ) : (
+            <div className="text-xs text-muted-foreground">
+              กด "ชำระเงิน" เพื่อไปกรอกชื่อ/เบอร์ และอัปโหลดสลิป
+            </div>
+          )}
         </CardContent>
         <CardFooter className="justify-end">
-          <Button type="submit">ชำระเงิน</Button>
+          <Button
+            type="submit"
+            disabled={isDisabled}
+          >
+            {isDisabled ? 'ปิดพรีออเดอร์แล้ว' : 'ชำระเงิน'}
+          </Button>
         </CardFooter>
       </Card>
     </form>
   );
 };
 
-export default Page;
+export default OrderPage;

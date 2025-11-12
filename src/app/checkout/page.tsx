@@ -18,7 +18,7 @@ import {
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Separator } from '@/components/ui/separator';
-import { getErrorMessage } from '@/lib/utils';
+import { cn, getErrorMessage, PREORDER_CLOSED } from '@/lib/utils';
 import Image from 'next/image';
 import * as promptparse from 'promptparse';
 
@@ -36,7 +36,9 @@ const CheckoutPage = () => {
   const [draft, setDraft] = useState<Draft | null>(null);
   const [turnstileToken, setTurnstileToken] = useState('');
   const [submitting, setSubmitting] = useState(false);
-  const [errorMsg, setErrorMsg] = useState('');
+  const [errorMsg, setErrorMsg] = useState(
+    PREORDER_CLOSED ? 'ปิดรับพรีออเดอร์ชั่วคราว' : ''
+  );
   const [randomKey, setRandomKey] = useState(
     Math.random().toString(36).substring(2)
   );
@@ -70,8 +72,14 @@ const CheckoutPage = () => {
   const count = useMemo(() => draft?.items.length ?? 0, [draft]);
   const total = useMemo(() => unit * count, [unit, count]);
 
+  const isDisabled = PREORDER_CLOSED || submitting;
+
   const onSubmit = async (values: TForm) => {
     if (!draft) return;
+    if (PREORDER_CLOSED) {
+      setErrorMsg('ปิดรับพรีออเดอร์ชั่วคราว');
+      return;
+    }
     if (!turnstileToken) {
       setErrorMsg('กรุณายืนยันว่าไม่ใช่บอท');
       return;
@@ -116,16 +124,22 @@ const CheckoutPage = () => {
 
   return (
     <form
-      className="space-y-2"
+      className={cn(
+        'space-y-2',
+        isDisabled && 'grayscale pointer-events-none select-none'
+      )}
       onSubmit={handleSubmit(onSubmit)}
     >
-      <Card>
+      <Card aria-disabled={isDisabled}>
         <CardHeader>
           <CardTitle className="text-lg">STEP 2: ชำระเงิน</CardTitle>
         </CardHeader>
+
         <CardContent className="space-y-2">
           <div className="text-sm">
-            กรุณากรอกข้อมูลติดต่อและอัปโหลดสลิปชำระเงิน จากนั้นกดยืนยัน
+            {PREORDER_CLOSED
+              ? 'ขณะนี้ปิดรับพรีออเดอร์และปิดการส่งคำสั่งซื้อชั่วคราว'
+              : 'กรุณากรอกข้อมูลติดต่อและอัปโหลดสลิปชำระเงิน จากนั้นกดยืนยัน'}
           </div>
           <Separator />
 
@@ -141,6 +155,7 @@ const CheckoutPage = () => {
                     placeholder="จะให้เราเรียกคุณว่าอะไรดี คะคนเก่ง?"
                     {...field}
                     autoFocus
+                    disabled={isDisabled}
                   />
                 )}
               />
@@ -150,6 +165,7 @@ const CheckoutPage = () => {
                 </p>
               )}
             </div>
+
             <div className="space-y-1">
               <Label htmlFor="phone">เบอร์ติดต่อ</Label>
               <Controller
@@ -162,6 +178,7 @@ const CheckoutPage = () => {
                     maxLength={10}
                     placeholder="08x-xxx-xxxx"
                     {...field}
+                    disabled={isDisabled}
                   />
                 )}
               />
@@ -191,11 +208,17 @@ const CheckoutPage = () => {
             </div>
           </div>
 
-          <div className="flex flex-col items-center gap-2">
+          <div
+            className={`flex flex-col items-center gap-2 ${
+              PREORDER_CLOSED
+                ? 'opacity-60 pointer-events-none select-none'
+                : ''
+            }`}
+          >
             <Image
               src={qrImageUrl}
               alt="QR"
-              className="w-64 h-64 object-contain rounded-md border p-2"
+              className="w-64 h-64 object-contain rounded-md border p-2 bg-white"
               width={256}
               height={256}
             />
@@ -214,43 +237,58 @@ const CheckoutPage = () => {
           <div className="space-y-1">
             <FileUpload
               label="อัปโหลดสลิป"
-              hint="รองรับ JPG/PNG ขนาดไม่เกิน 5MB"
+              hint={
+                PREORDER_CLOSED
+                  ? 'ปิดรับพรีออเดอร์: ปิดการอัปโหลดชั่วคราว'
+                  : 'รองรับ JPG/PNG ขนาดไม่เกิน 5MB'
+              }
               accept="image/*"
               maxSizeMB={5}
               required
               ref={fileRef}
-              onFileChange={() => {
-                setErrorMsg('');
-              }}
+              disabled={isDisabled}
+              onFileChange={() => setErrorMsg('')}
             />
           </div>
 
           <div className="pt-2 flex justify-center">
-            <Turnstile
-              key={randomKey}
-              theme="light"
-              sitekey={siteKey}
-              onSuccess={(t) => setTurnstileToken(t)}
-              onExpire={() => setTurnstileToken('')}
-              onError={() => setTurnstileToken('')}
-            />
+            {!PREORDER_CLOSED && (
+              <Turnstile
+                key={randomKey}
+                theme="light"
+                sitekey={siteKey}
+                onSuccess={(t) => setTurnstileToken(t)}
+                onExpire={() => setTurnstileToken('')}
+                onError={() => setTurnstileToken('')}
+              />
+            )}
           </div>
 
           {errorMsg && <p className="text-sm text-destructive">{errorMsg}</p>}
         </CardContent>
+
         <CardFooter className="items-center justify-between">
           <Button
             type="button"
             variant="secondary"
             onClick={() => history.back()}
+            className={cn(
+              'border-muted-foreground hover:bg-muted-foreground/10',
+              isDisabled && 'pointer-events-none opacity-50'
+            )}
+            disabled={isDisabled}
           >
             ย้อนกลับ
           </Button>
           <Button
             type="submit"
-            disabled={submitting || !turnstileToken}
+            disabled={isDisabled || !turnstileToken}
           >
-            {submitting ? 'กำลังส่งคำสั่งซื้อ…' : 'ยืนยันสั่งซื้อ'}
+            {PREORDER_CLOSED
+              ? 'ปิดพรีออเดอร์แล้ว'
+              : submitting
+              ? 'กำลังส่งคำสั่งซื้อ…'
+              : 'ยืนยันสั่งซื้อ'}
           </Button>
         </CardFooter>
       </Card>

@@ -1,4 +1,5 @@
-import { cn } from '@/lib/utils';
+import { Card, CardContent } from '@/components/ui/card';
+import { cn, PREORDER_CLOSED } from '@/lib/utils';
 import type { Metadata, Viewport } from 'next';
 import { Kanit } from 'next/font/google';
 import './globals.css';
@@ -75,6 +76,10 @@ const RootLayout = ({
 }: Readonly<{
   children: React.ReactNode;
 }>) => {
+  const bgClass = PREORDER_CLOSED
+    ? 'bg-gray-100'
+    : 'bg-linear-to-b from-red-100 via-red-50 to-white';
+
   return (
     <html
       lang="th"
@@ -82,7 +87,8 @@ const RootLayout = ({
     >
       <body
         className={cn(
-          'min-h-dvh bg-linear-to-b from-red-100 via-red-50 to-white text-gray-900 antialiased font-sans relative overflow-x-hidden'
+          'min-h-dvh text-gray-900 antialiased font-sans relative overflow-x-hidden',
+          bgClass
         )}
       >
         <div
@@ -96,6 +102,22 @@ const RootLayout = ({
               พรีออเดอร์ &quot;หมี่ไก่ฉีก&quot; (By แว่นมานี่มา)
             </h1>
           </header>
+
+          {PREORDER_CLOSED && (
+            <Card
+              role="alert"
+              className="border-destructive/30 bg-destructive/5 my-2"
+            >
+              <CardContent className="py-3">
+                <p className="text-sm">
+                  <span className="font-semibold text-destructive">
+                    ปิดพรีออเดอร์แล้ว
+                  </span>{' '}
+                  ขอบคุณทุกออเดอร์นะคะ/ครับ 🙏 รอบถัดไปจะแจ้งให้ทราบอีกครั้ง
+                </p>
+              </CardContent>
+            </Card>
+          )}
 
           <main className="flex-1">{children}</main>
 

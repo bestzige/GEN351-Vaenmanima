@@ -13,6 +13,7 @@ type FileUploadProps = {
   hint?: string;
   onFileChange?: (file: File | null) => void;
   required?: boolean;
+  disabled?: boolean;
 };
 
 const FileUpload = forwardRef<HTMLInputElement, FileUploadProps>(
@@ -25,6 +26,7 @@ const FileUpload = forwardRef<HTMLInputElement, FileUploadProps>(
       hint,
       onFileChange,
       required,
+      disabled = false,
     },
     ref
   ) => {
@@ -134,6 +136,7 @@ const FileUpload = forwardRef<HTMLInputElement, FileUploadProps>(
             className="hidden"
             onChange={(e) => handleFiles(e.target.files)}
             aria-required={required}
+            disabled={disabled}
           />
 
           {!preview ? (
@@ -180,6 +183,7 @@ const FileUpload = forwardRef<HTMLInputElement, FileUploadProps>(
               type="button"
               variant="secondary"
               onClick={openPicker}
+              disabled={disabled}
             >
               เลือกไฟล์
             </Button>
@@ -189,6 +193,7 @@ const FileUpload = forwardRef<HTMLInputElement, FileUploadProps>(
                 type="button"
                 variant="secondary"
                 onClick={openPicker}
+                disabled={disabled}
               >
                 เปลี่ยนไฟล์
               </Button>
@@ -196,6 +201,7 @@ const FileUpload = forwardRef<HTMLInputElement, FileUploadProps>(
                 type="button"
                 variant="ghost"
                 onClick={clearFile}
+                disabled={disabled}
               >
                 <X className="mr-1 h-4 w-4" />
                 ลบไฟล์
