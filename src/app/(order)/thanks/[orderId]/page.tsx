@@ -17,7 +17,7 @@ import { useParams } from 'next/navigation';
 const OrderSuccess = () => {
   const { orderId } = useParams<{ orderId: string }>();
 
-  const pickupTime = 'วันนี้ เวลา 09:00 - 12:30 น.';
+  const pickupTime = 'วันที่ 13 พฤศจิกายน เวลา 09:00 - 12:30 น.';
   const pickupPlace = 'ตึกศิลปาศาสตร์ (Sola Building) ชั้น 1 (B13)';
 
   return (
